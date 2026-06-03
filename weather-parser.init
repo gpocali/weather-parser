@@ -38,7 +38,7 @@ start() {
     # 2. Spin up the darkhttpd instance mapped to the dynamic web root
     start-stop-daemon --start --background \
         --pidfile "$DARKHTTPD_PIDFILE" --make-pidfile \
-        --exec "$DARKHTTPD_BIN" -- "$OUTPUT_DIR" --port "$WEB_PORT" --chroot
+        --exec /bin/sh -- -c "exec \"$DARKHTTPD_BIN\" \"$OUTPUT_DIR\" --port \"$WEB_PORT\" >> /var/log/weather-web.log 2>&1"
         
     eend $?
 }
