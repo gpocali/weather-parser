@@ -54,7 +54,7 @@ update() {
     ebegin "Checking Git repository for software updates"
     
     # Define operational paths
-    local repo_dir="/etc/weather-parser"
+    local repo_dir="/opt/weather-parser"
     local init_path="/etc/init.d/weather-parser"
 
     if [ -z "$GIT_REPO" ] || [ ! -d "$repo_dir/.git" ]; then
@@ -76,12 +76,12 @@ update() {
         
         # 1. Deploy and patch the PHP Execution Daemon
         cp weather-parser.php "$PHP_DAEMON"
-        sed -i "s|/etc/weather-parser.conf|$CONFIG_FILE|g" "$PHP_DAEMON"
+        sed -i "s|/opt/weather-parser.conf|$CONFIG_FILE|g" "$PHP_DAEMON"
         chmod +x "$PHP_DAEMON"
         
         # 2. Deploy and patch the OpenRC Init Script
         cp weather-parser.init "$init_path"
-        sed -i "s|/etc/weather-parser.conf|$CONFIG_FILE|g" "$init_path"
+        sed -i "s|/opt/weather-parser.conf|$CONFIG_FILE|g" "$init_path"
         chmod +x "$init_path"
         
         einfo "Re-cycling daemon threads to hook new source revisions"
