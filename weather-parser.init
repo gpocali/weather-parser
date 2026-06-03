@@ -52,7 +52,7 @@ stop() {
 
 update() {
     ebegin "Checking Git repository for software updates"
-    if [ -z "$GIT_REPO" ] || [ ! -d "/usr/share/weather-parser/.git" ]; then
+    if [ -z "$GIT_REPO" ] || [ ! -d "/etc/weather-parser/.git" ]; then
         eerror "Git operational repository environment is not mapped or verified."
         eend 1
         return 1
