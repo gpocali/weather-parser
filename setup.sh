@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # Setup/Teardown Engine for Weather Parser Service
-CONFIG_PATH="/etc/weather-parser.conf"
+CONFIG_PATH="/opt/weather-parser.conf"
 BIN_PATH="/usr/libexec/weather-parser.php"
 INIT_PATH="/etc/init.d/weather-parser"
-REPO_SRC_DIR="/usr/share/weather-parser"
+REPO_SRC_DIR="/etc/weather-parser"
 
-# Define your public repository URL here so the script knows where to pull from
+# Remote Tracking Git Repository
 GIT_REPO_URL="https://github.com/gpocali/weather-parser.git"
 
 install_dependencies() {
@@ -26,11 +26,16 @@ WEB_PORT="8080"
 GIT_REPO="$GIT_REPO_URL"
 EOF
 
+    echo "==> Configuring Alpine LBU Tracking for /opt configuration..."
+    if command -v lbu >/dev/null 2>&1; then
+        lbu include "$CONFIG_PATH"
+        echo "Added $CONFIG_PATH to LBU persistence."
+    fi
+
     echo "==> Provisioning Workspace Paths and Fetching Source..."
     mkdir -p "/var/www/weather"
-    mkdir -p "$REPO_SRC_DIR"
-
-    # Clone the repository directly to grab the execution and init files
+    
+    # Clone the repository into /etc so LBU tracks the source tree by default
     rm -rf "$REPO_SRC_DIR"
     git clone "$GIT_REPO_URL" "$REPO_SRC_DIR"
 
@@ -38,12 +43,16 @@ EOF
     cp "$REPO_SRC_DIR/weather-parser.php" "$BIN_PATH"
     cp "$REPO_SRC_DIR/weather-parser.init" "$INIT_PATH"
 
+    # Dynamically patch the hardcoded config paths in the source files
+    echo "==> Patching source files for new /opt config path..."
+    sed -i "s|/etc/weather-parser.conf|$CONFIG_PATH|g" "$BIN_PATH"
+    sed -i "s|/etc/weather-parser.conf|$CONFIG_PATH|g" "$INIT_PATH"
+
     # Apply executable masks
     chmod +x "$BIN_PATH"
     chmod +x "$INIT_PATH"
 
     echo "==> Setting up login instructions (MOTD)..."
-    # Add to the static MOTD (if not already there)
     if ! grep -q "Weather Parser Service" /etc/motd 2>/dev/null; then
         echo "" >> /etc/motd
         echo "--- Weather Parser Service Commands ---" >> /etc/motd
@@ -52,10 +61,8 @@ EOF
         echo "---------------------------------------" >> /etc/motd
     fi
 
-    # Create the dynamic fallback script
     cat << 'EOF' > /etc/profile.d/weather_motd.sh
 #!/bin/sh
-# If the static MOTD was overwritten, print the instructions dynamically
 if ! grep -q "Weather Parser Service" /etc/motd 2>/dev/null; then
     echo ""
     echo "--- Weather Parser Service Commands ---"
@@ -79,6 +86,7 @@ EOF
     echo "  nano $CONFIG_PATH"
     echo ""
     echo "Run 'rc-service weather-parser restart' after saving changes."
+    echo "If using a diskless Alpine install, remember to run 'lbu commit -d'"
     echo "Web Interface operational at: http://localhost:8080"
     echo "------------------------------------------------------"
 }
@@ -99,6 +107,12 @@ uninstall_dependencies() {
             echo "Removing generated web assets directory ($OUTPUT_DIR)..."
             rm -rf "$OUTPUT_DIR"
         fi
+        
+        # Remove config from LBU tracking before deleting
+        if command -v lbu >/dev/null 2>&1; then
+            lbu exclude "$CONFIG_PATH" 2>/dev/null
+        fi
+        
         rm -f "$CONFIG_PATH"
     fi
 
@@ -114,6 +128,7 @@ uninstall_dependencies() {
     echo "------------------------------------------------------"
     echo "Uninstallation Complete!"
     echo "All configuration files, cron dependencies, and web assets have been removed."
+    echo "If using a diskless Alpine install, remember to run 'lbu commit -d'"
     echo "------------------------------------------------------"
 }
 
@@ -128,7 +143,7 @@ case "$1" in
   *)
     echo "Weather Parser Setup Utility"
     echo "Usage: $0 {--install|--uninstall}"
-    echo "If running via curl/wget pipe, use: wget -qO- https://raw.github.../setup.sh | sh -s -- --install"
+    echo "If running via curl/wget pipe, use: wget -qO- https://raw.githubusercontent.com/gpocali/weather-parser/main/setup.sh | sh -s -- --install"
     exit 1
     ;;
 esac
