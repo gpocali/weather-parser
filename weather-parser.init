@@ -33,9 +33,8 @@ start() {
     # 1. Spin up the Background PHP Engine Loop
     start-stop-daemon --start --background \
         --pidfile "$PHP_PIDFILE" --make-pidfile \
-        --stdout /var/log/weather-php.log \
-        --stderr /var/log/weather-php.log \
-        --exec /usr/bin/php -- "$PHP_DAEMON"
+        --exec /bin/sh -- -c "exec php \"$PHP_DAEMON\" >> /var/log/weather-parser.log 2>&1"
+
     # 2. Spin up the darkhttpd instance mapped to the dynamic web root
     start-stop-daemon --start --background \
         --pidfile "$DARKHTTPD_PIDFILE" --make-pidfile \
