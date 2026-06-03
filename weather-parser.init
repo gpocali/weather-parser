@@ -58,7 +58,7 @@ update() {
         return 1
     fi
 
-    cd /usr/share/weather-parser || exit 1
+    cd /etc/weather-parser || exit 1
     git fetch origin
     LOCAL=$(git rev-parse @)
     REMOTE=$(git rev-parse @{u})

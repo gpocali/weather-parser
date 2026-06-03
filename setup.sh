@@ -109,11 +109,11 @@ uninstall_dependencies() {
         fi
         
         # Remove config from LBU tracking before deleting
-        if command -v lbu >/dev/null 2>&1; then
-            lbu exclude "$CONFIG_PATH" 2>/dev/null
-        fi
+    #    if command -v lbu >/dev/null 2>&1; then
+    #        lbu exclude "$CONFIG_PATH" 2>/dev/null
+    #    fi
         
-        rm -f "$CONFIG_PATH"
+    #    rm -f "$CONFIG_PATH"
     fi
 
     rm -f "$BIN_PATH"
