@@ -51,6 +51,8 @@ EOF
     # Apply executable masks
     chmod +x "$BIN_PATH"
     chmod +x "$INIT_PATH"
+    
+    lbu add "$BIN_PATH" "$INIT_PATH"
 
     echo "==> Setting up login instructions (MOTD)..."
     if ! grep -q "Weather Parser Service" /etc/motd 2>/dev/null; then
@@ -119,6 +121,8 @@ uninstall_dependencies() {
     rm -f "$BIN_PATH"
     rm -rf "$REPO_SRC_DIR"
     
+    lbu exclude "$BIN_PATH" "$INIT_PATH"
+    
     echo "==> Cleaning up login instructions (MOTD)..."
     if grep -q "Weather Parser Service" /etc/motd 2>/dev/null; then
         sed -i '/--- Weather Parser Service Commands ---/,/---------------------------------------/d' /etc/motd
@@ -127,7 +131,7 @@ uninstall_dependencies() {
     
     echo "------------------------------------------------------"
     echo "Uninstallation Complete!"
-    echo "All configuration files, cron dependencies, and web assets have been removed."
+    echo "Assets have been removed but config file remains."
     echo "If using a diskless Alpine install, remember to run 'lbu commit -d'"
     echo "------------------------------------------------------"
 }
