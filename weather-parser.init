@@ -1,0 +1,80 @@
+#!/sbin/openrc-run
+
+name="Weather Parser and Web Server Service"
+description="Runs local weather extraction and darkhttpd web asset distribution"
+
+# Setup dependencies and custom tracking actions
+extra_commands="update"
+description_update="Pulls the latest script modifications from the remote Git repository"
+
+# Load parameters from configuration mapping
+CONFIG_FILE="/etc/weather-parser.conf"
+if [ -f "$CONFIG_FILE" ]; then
+    . "$CONFIG_FILE"
+fi
+
+PHP_DAEMON="/usr/libexec/weather-parser.php"
+PHP_PIDFILE="/var/run/weather-parser.pid"
+
+DARKHTTPD_BIN="/usr/bin/darkhttpd"
+DARKHTTPD_PIDFILE="/var/run/weather-darkhttpd.pid"
+
+depend() {
+    need net
+    after firewall
+}
+
+start() {
+    ebegin "Starting $name"
+    
+    # Ensure the target directory for web assets matches specifications
+    mkdir -p "$OUTPUT_DIR"
+
+    # 1. Spin up the Background PHP Engine Loop
+    start-stop-daemon --start --background \
+        --pidfile "$PHP_PIDFILE" --make-pidfile \
+        --exec "$PHP_DAEMON"
+    
+    # 2. Spin up the darkhttpd instance mapped to the dynamic web root
+    start-stop-daemon --start --background \
+        --pidfile "$DARKHTTPD_PIDFILE" --make-pidfile \
+        --exec "$DARKHTTPD_BIN" -- "$OUTPUT_DIR" --port "$WEB_PORT" --chroot
+        
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping $name"
+    start-stop-daemon --stop --pidfile "$PHP_PIDFILE"
+    start-stop-daemon --stop --pidfile "$DARKHTTPD_PIDFILE"
+    eend $?
+}
+
+update() {
+    ebegin "Checking Git repository for software updates"
+    if [ -z "$GIT_REPO" ] || [ ! -d "/usr/share/weather-parser/.git" ]; then
+        eerror "Git operational repository environment is not mapped or verified."
+        eend 1
+        return 1
+    fi
+
+    cd /usr/share/weather-parser || exit 1
+    git fetch origin
+    LOCAL=$(git rev-parse @)
+    REMOTE=$(git rev-parse @{u})
+
+    if [ "$LOCAL" != "$REMOTE" ]; then
+        einfo "New tracking revisions identified. Syncing branch..."
+        git pull origin main || git pull origin master
+        
+        # Overlay the fresh production execution script safely
+        cp weather-parser.php "$PHP_DAEMON"
+        chmod +x "$PHP_DAEMON"
+        
+        einfo "Re-cycling daemon threads to hook new source revisions"
+        rc-service weather-service restart
+    else
+        einfo "Software application is already at current patch release."
+    fi
+    eend 0
+}
