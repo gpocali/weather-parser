@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-$configFile = '/etc/weather-parser.conf';
+$configFile = '/opt/weather-parser.conf';
 if (!file_exists($configFile)) {
     fwrite(STDERR, "Configuration file not found at $configFile\n");
     exit(1);
