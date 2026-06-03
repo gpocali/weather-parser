@@ -33,8 +33,9 @@ start() {
     # 1. Spin up the Background PHP Engine Loop
     start-stop-daemon --start --background \
         --pidfile "$PHP_PIDFILE" --make-pidfile \
-        --exec /usr/bin/php -- "$PHP_DAEMON" > /var/log/weather-parser.log 2>&1
-    
+        --stdout /var/log/weather-php.log \
+        --stderr /var/log/weather-php.log \
+        --exec /usr/bin/php -- "$PHP_DAEMON"
     # 2. Spin up the darkhttpd instance mapped to the dynamic web root
     start-stop-daemon --start --background \
         --pidfile "$DARKHTTPD_PIDFILE" --make-pidfile \
@@ -52,13 +53,18 @@ stop() {
 
 update() {
     ebegin "Checking Git repository for software updates"
-    if [ -z "$GIT_REPO" ] || [ ! -d "/etc/weather-parser/.git" ]; then
+    
+    # Define operational paths
+    local repo_dir="/etc/weather-parser"
+    local init_path="/etc/init.d/weather-parser"
+
+    if [ -z "$GIT_REPO" ] || [ ! -d "$repo_dir/.git" ]; then
         eerror "Git operational repository environment is not mapped or verified."
         eend 1
         return 1
     fi
 
-    cd /etc/weather-parser || exit 1
+    cd "$repo_dir" || exit 1
     git fetch origin
     LOCAL=$(git rev-parse @)
     REMOTE=$(git rev-parse @{u})
@@ -67,9 +73,17 @@ update() {
         einfo "New tracking revisions identified. Syncing branch..."
         git pull origin main || git pull origin master
         
-        # Overlay the fresh production execution script safely
+        einfo "Patching and deploying updated scripts..."
+        
+        # 1. Deploy and patch the PHP Execution Daemon
         cp weather-parser.php "$PHP_DAEMON"
+        sed -i "s|/etc/weather-parser.conf|$CONFIG_FILE|g" "$PHP_DAEMON"
         chmod +x "$PHP_DAEMON"
+        
+        # 2. Deploy and patch the OpenRC Init Script
+        cp weather-parser.init "$init_path"
+        sed -i "s|/etc/weather-parser.conf|$CONFIG_FILE|g" "$init_path"
+        chmod +x "$init_path"
         
         einfo "Re-cycling daemon threads to hook new source revisions"
         rc-service weather-parser restart
