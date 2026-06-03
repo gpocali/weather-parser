@@ -8,7 +8,7 @@ extra_commands="update"
 description_update="Pulls the latest script modifications from the remote Git repository"
 
 # Load parameters from configuration mapping
-CONFIG_FILE="/etc/weather-parser.conf"
+CONFIG_FILE="/opt/weather-parser.conf"
 if [ -f "$CONFIG_FILE" ]; then
     . "$CONFIG_FILE"
 fi
