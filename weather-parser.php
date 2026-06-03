@@ -10,8 +10,8 @@ if (!file_exists($configFile)) {
 $config = parse_ini_file($configFile);
 date_default_timezone_set($config['TIMEZONE'] ?? 'US/Eastern');
 
-$lat = $config['LATITUDE'] ?? '40.869';
-$lon = $config['LONGITUDE'] ?? '-73.5295';
+$lat = $config['LATITUDE'] ?? '40.7128';
+$lon = $config['LONGITUDE'] ?? '-74.0060';
 $outputDir = rtrim($config['OUTPUT_DIR'] ?? '/var/www/weather', '/');
 $url = "https://forecast.weather.gov/MapClick.php?lat={$lat}&lon={$lon}&unit=0&lg=english&FcstType=dwml";
 
