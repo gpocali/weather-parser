@@ -72,7 +72,7 @@ update() {
         chmod +x "$PHP_DAEMON"
         
         einfo "Re-cycling daemon threads to hook new source revisions"
-        rc-service weather-service restart
+        rc-service weather-parser restart
     else
         einfo "Software application is already at current patch release."
     fi
